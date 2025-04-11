@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Laundry Reception - Bluemoon Hotel</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Segoe+UI&display=swap">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f2f2f2;
+      padding: 30px;
+    }
+    .container {
+      background: #fff;
+      padding: 30px;
+      max-width: 1100px;
+      margin: auto;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #00796b;
+    }
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .btn-delete-all { background: #d32f2f; color: white; }
+    .btn-export { background: #0288d1; color: white; }
+    .btn-back { background: #00796b; color: white; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 12px;
+      text-align: left;
+    }
+    th {
+      background: #004d40;
+      color: white;
+    }
+    .actions button {
+      margin-right: 5px;
+      padding: 6px 10px;
+    }
+    .btn-edit { background: #ffc107; color: #000; }
+    .btn-delete { background: #e53935; color: #fff; }
+    .btn-print { background: #4caf50; color: white; }
+    .summary {
+      text-align: right;
+      margin-top: 15px;
+      font-size: 1.1em;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h2>Laundry Orders - Reception Panel</h2>
+  <div class="controls">
+    <div>
+      <button class="btn-export" onclick="exportCSV()">Export CSV</button>
+      <button class="btn-delete-all" onclick="deleteAllOrders()">Delete All</button>
+    </div>
+    <button class="btn-back" onclick="location.href='index.html'">Back to Main</button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Order #</th>
+        <th>Guest</th>
+        <th>Room</th>
+        <th>Items</th>
+        <th>Total</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="ordersBody"></tbody>
+  </table>
+  <div class="summary">
+    Total Profit: $<span id="totalProfit">0.00</span>
+  </div>
+</div>
+
+<script>
+const { jsPDF } = window.jspdf;
+function loadOrders() {
+  let totalProfit = 0;
+  const tbody = document.getElementById("ordersBody");
+  tbody.innerHTML = "";
+  for (let key in localStorage) {
+    if (key.startsWith("laundry-")) {
+      const order = JSON.parse(localStorage.getItem(key));
+      totalProfit += parseFloat(order.total);
+      const row = `<tr>
+        <td>${order.orderNumber}</td>
+        <td>${order.guest}</td>
+        <td>${order.room}</td>
+        <td>${order.items.map(i => i.name + " (" + i.task + ")").join(", ")}</td>
+        <td>$${parseFloat(order.total).toFixed(2)}</td>
+        <td class="actions">
+          <button class="btn-edit" onclick="editOrder('${key}')">Edit</button>
+          <button class="btn-delete" onclick="deleteOrder('${key}')">Delete</button>
+          <button class="btn-print" onclick="printOrder('${key}')">Print</button>
+        </td>
+      </tr>`;
+      tbody.insertAdjacentHTML("beforeend", row);
+    }
+  }
+  document.getElementById("totalProfit").textContent = totalProfit.toFixed(2);
+}
+
+function deleteOrder(key) {
+  if (confirm("Are you sure you want to delete this order?")) {
+    localStorage.removeItem(key);
+    loadOrders();
+  }
+}
+
+function deleteAllOrders() {
+  if (confirm("Delete all laundry orders?")) {
+    for (let key in localStorage) {
+      if (key.startsWith("laundry-")) localStorage.removeItem(key);
+    }
+    loadOrders();
+  }
+}
+
+function exportCSV() {
+  let csv = "Order #,Guest,Room,Items,Total ($)\n";
+  for (let key in localStorage) {
+    if (key.startsWith("laundry-")) {
+      const order = JSON.parse(localStorage.getItem(key));
+      const items = order.items.map(i => i.name + " (" + i.task + ")").join("; ");
+      csv += `${order.orderNumber},${order.guest},${order.room},"${items}",${order.total}\n`;
+    }
+  }
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "laundry_orders.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function editOrder(key) {
+  location.href = `edit.html?id=${key}`;
+}
+
+function printOrder(key) {
+  const order = JSON.parse(localStorage.getItem(key));
+  const doc = new jsPDF();
+  let y = 20;
+  doc.setFontSize(16);
+  doc.text("Bluemoon Hotel", 105, y, { align: "center" });
+  y += 10;
+  doc.setFontSize(12);
+  doc.text("Laundry Invoice", 105, y, { align: "center" });
+  y += 10;
+  doc.setFontSize(10);
+  doc.text(`Order #: ${order.orderNumber}`, 14, y); y += 6;
+  doc.text(`Guest: ${order.guest}`, 14, y); y += 6;
+  doc.text(`Room: ${order.room}`, 14, y); y += 6;
+  doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, y); y += 10;
+  doc.text("Item", 14, y); doc.text("Task", 80, y); doc.text("Price", 160, y); y += 6;
+  doc.line(14, y, 200, y); y += 4;
+  order.items.forEach(i => {
+    doc.text(i.name, 14, y);
+    doc.text(i.task, 80, y);
+    doc.text(`$${i.cost.toFixed(2)}`, 160, y);
+    y += 6;
+  });
+  y += 4;
+  doc.line(14, y, 200, y); y += 6;
+  doc.text(`Total: $${order.total}`, 14, y); y += 10;
+  doc.text("Guest Signature: ____________________", 14, y);
+  doc.save(`${order.orderNumber}.pdf`);
+}
+
+loadOrders();
+</script>
+</body>
+</html>

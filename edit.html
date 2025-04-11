@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Edit Laundry Order</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f0f0; padding: 30px; }
+    .wrapper {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h2 { text-align: center; color: #00796b; }
+    label { font-weight: bold; display: block; margin-top: 15px; }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      margin-bottom: 15px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    table {
+      width: 100%;
+      margin-top: 15px;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background-color: #004d40;
+      color: white;
+    }
+    .total {
+      text-align: right;
+      font-weight: bold;
+      margin-top: 20px;
+    }
+    .buttons {
+      text-align: center;
+      margin-top: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    .btn-save { background-color: #388e3c; color: white; }
+    .btn-print { background-color: #0288d1; color: white; }
+    .btn-cancel { background-color: #757575; color: white; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <h2>Edit Laundry Order</h2>
+    <label>Guest Name</label>
+    <input type="text" id="guestName" />
+
+    <label>Room Number</label>
+    <input type="text" id="roomNumber" />
+
+    <table>
+      <thead>
+        <tr><th>Item</th><th>Service</th><th>Price</th><th>Select</th></tr>
+      </thead>
+      <tbody id="itemRows"></tbody>
+    </table>
+
+    <div class="total">Total: $<span id="totalAmount">0.00</span></div>
+
+    <div class="buttons">
+      <button class="btn-save" onclick="saveChanges()">Save and Exit</button>
+      <button class="btn-print" onclick="window.print()">Print</button>
+      <button class="btn-cancel" onclick="history.back()">Cancel</button>
+    </div>
+  </div>
+
+<script>
+const items = [
+  { name: "Pyjamas 2 pcs", task: "Ironing", cost: 3.5 },
+  { name: "Pyjamas 2 pcs", task: "Washing", cost: 5.0 },
+  { name: "Abaya", task: "Ironing", cost: 4.5 },
+  { name: "Abaya", task: "Dry-Cleaning", cost: 7.0 },
+  { name: "Abaya", task: "Washing", cost: 6.0 },
+  { name: "Shirt", task: "Washing", cost: 3.0 },
+  { name: "Shirt", task: "Ironing", cost: 2.0 },
+  { name: "Suit", task: "Dry-Cleaning", cost: 10.0 },
+  { name: "Trousers", task: "Washing", cost: 4.0 },
+  { name: "Trousers", task: "Ironing", cost: 2.5 },
+  { name: "Towel", task: "Washing", cost: 2.0 },
+  { name: "Towel", task: "Ironing", cost: 1.5 },
+  { name: "Bed Sheet", task: "Washing", cost: 5.5 },
+  { name: "Bed Sheet", task: "Ironing", cost: 3.5 },
+  { name: "Blanket", task: "Dry-Cleaning", cost: 9.0 },
+  { name: "Dress", task: "Washing", cost: 6.0 },
+  { name: "Dress", task: "Ironing", cost: 4.0 },
+  { name: "Dress", task: "Dry-Cleaning", cost: 8.5 }
+];
+
+const params = new URLSearchParams(window.location.search);
+const key = params.get('id');
+
+let originalOrder = null;
+
+function renderTable(selected = []) {
+  const tbody = document.getElementById('itemRows');
+  tbody.innerHTML = '';
+  items.forEach((item, i) => {
+    const isChecked = selected.some(sel => sel.name === item.name && sel.task === item.task);
+    const row = `<tr>
+      <td>${item.name}</td>
+      <td>${item.task}</td>
+      <td>$${item.cost.toFixed(2)}</td>
+      <td><input type="checkbox" data-index="${i}" ${isChecked ? 'checked' : ''} onchange="updateTotal()" /></td>
+    </tr>`;
+    tbody.insertAdjacentHTML('beforeend', row);
+  });
+  updateTotal();
+}
+
+function updateTotal() {
+  let total = 0;
+  document.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    if (cb.checked) total += items[cb.dataset.index].cost;
+  });
+  document.getElementById('totalAmount').textContent = total.toFixed(2);
+}
+
+function saveChanges() {
+  const guest = document.getElementById('guestName').value.trim();
+  const room = document.getElementById('roomNumber').value.trim();
+  if (!guest || !room) return alert('Please fill all fields.');
+
+  const selectedItems = [];
+  document.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    if (cb.checked) {
+      const item = items[cb.dataset.index];
+      selectedItems.push(item);
+    }
+  });
+
+  const total = document.getElementById('totalAmount').textContent;
+  const newOrder = {
+    orderNumber: `LAUNDRY${room}`,
+    guest,
+    room,
+    items: selectedItems,
+    total
+  };
+
+  localStorage.setItem(key, JSON.stringify(newOrder));
+  alert('Order updated.');
+  location.href = 'laundry_reception.html';
+}
+
+window.onload = () => {
+  if (!key) return alert("Missing order ID.");
+
+  const order = JSON.parse(localStorage.getItem(key));
+  if (!order) return alert("Order not found.");
+
+  originalOrder = order;
+  document.getElementById('guestName').value = order.guest;
+  document.getElementById('roomNumber').value = order.room;
+  renderTable(order.items);
+};
+</script>
+</body>
+</html>

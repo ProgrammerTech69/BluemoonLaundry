@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Laundry Service - Bluemoon Hotel</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #e0f2f1;
+      margin: 0;
+      padding: 0;
+    }
+    .wrapper {
+      max-width: 900px;
+      margin: 30px auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .header h2 {
+      margin: 0;
+      color: #00796b;
+    }
+    .lang-toggle button {
+      padding: 5px 15px;
+      border: none;
+      background: #00796b;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    label {
+      font-weight: bold;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    table th, table td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: left;
+    }
+    table th {
+      background: #004d40;
+      color: white;
+    }
+    .total-box {
+      text-align: right;
+      font-size: 1.2em;
+      margin-top: 10px;
+    }
+    .buttons {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .btn {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .btn-save { background: #388e3c; color: white; }
+    .btn-print { background: #0288d1; color: white; }
+    .btn-reception { background: #6a1b9a; color: white; }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <h2 id="title">Laundry Service</h2>
+    <div class="lang-toggle">
+      <button onclick="toggleLanguage()">عربي / English</button>
+    </div>
+  </div>
+
+  <label id="guestLabel">Guest Name</label>
+  <input type="text" id="guestName" placeholder="Enter guest name">
+
+  <label id="roomLabel">Room Number</label>
+  <input type="text" id="roomNumber" placeholder="Enter room number">
+
+  <table>
+    <thead>
+      <tr>
+        <th id="itemHeader">Item</th>
+        <th id="taskHeader">Task</th>
+        <th id="costHeader">Cost ($)</th>
+        <th id="selectHeader">Select</th>
+      </tr>
+    </thead>
+    <tbody id="itemRows"></tbody>
+  </table>
+
+  <div class="total-box">
+    <span id="totalLabel">Total:</span> <span id="totalAmount">0.00</span> $
+  </div>
+
+  <div class="buttons">
+    <button class="btn btn-save" onclick="saveOrder()">Save</button>
+    <button class="btn btn-print" onclick="generatePDFInvoice()">Print</button>
+    <button class="btn btn-reception" onclick="location.href='laundry_reception.html'">Go to Reception</button>
+  </div>
+</div>
+
+<script>
+const items = [
+  { name: "Pyjamas 2 pcs", name_ar: "بيجامة قطعتين", task: "Ironing", task_ar: "كي", cost: 3.5 },
+  { name: "Pyjamas 2 pcs", name_ar: "بيجامة قطعتين", task: "Washing", task_ar: "غسيل", cost: 5.0 },
+  { name: "Abaya", name_ar: "عباية", task: "Ironing", task_ar: "كي", cost: 4.5 },
+  { name: "Abaya", name_ar: "عباية", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 7.0 },
+  { name: "Abaya", name_ar: "عباية", task: "Washing", task_ar: "غسيل", cost: 6.0 },
+  { name: "Evening Dress", name_ar: "فستان سهرة", task: "Ironing", task_ar: "كي", cost: 6.5 },
+  { name: "Evening Dress", name_ar: "فستان سهرة", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 10.0 },
+  { name: "Silk Blouse", name_ar: "بلوزة حرير", task: "Ironing", task_ar: "كي", cost: 1.7 },
+  { name: "Silk Blouse", name_ar: "بلوزة حرير", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 4.5 },
+  { name: "Slacks", name_ar: "بنطال قماشي", task: "Ironing", task_ar: "كي", cost: 2.5 },
+  { name: "Slacks", name_ar: "بنطال قماشي", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 5.0 },
+  { name: "Slacks", name_ar: "بنطال قماشي", task: "Washing", task_ar: "غسيل", cost: 3.5 },
+  { name: "Skirt", name_ar: "تنورة", task: "Ironing", task_ar: "كي", cost: 2.7 },
+  { name: "Skirt", name_ar: "تنورة", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 4.0 },
+  { name: "Skirt", name_ar: "تنورة", task: "Washing", task_ar: "غسيل", cost: 4.5 },
+  { name: "Blouse", name_ar: "بلوزة", task: "Ironing", task_ar: "كي", cost: 2.7 },
+  { name: "Blouse", name_ar: "بلوزة", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 4.0 },
+  { name: "Blouse", name_ar: "بلوزة", task: "Washing", task_ar: "غسيل", cost: 3.5 },
+  { name: "Dress", name_ar: "فستان", task: "Ironing", task_ar: "كي", cost: 5.0 },
+  { name: "Dress", name_ar: "فستان", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 8.0 },
+  { name: "Dress", name_ar: "فستان", task: "Washing", task_ar: "غسيل", cost: 7.0 },
+  { name: "Tracksuit", name_ar: "بدلة رياضية", task: "Ironing", task_ar: "كي", cost: 3.5 },
+  { name: "Tracksuit", name_ar: "بدلة رياضية", task: "Washing", task_ar: "غسيل", cost: 5.0 },
+  { name: "Short", name_ar: "شورت", task: "Ironing", task_ar: "كي", cost: 2.4 },
+  { name: "Short", name_ar: "شورت", task: "Washing", task_ar: "غسيل", cost: 3.5 },
+  { name: "Socks", name_ar: "جوارب", task: "Washing", task_ar: "غسيل", cost: 1.4 },
+  { name: "Pyjamas", name_ar: "بيجامة", task: "Ironing", task_ar: "كي", cost: 1.5 },
+  { name: "Pyjamas", name_ar: "بيجامة", task: "Washing", task_ar: "غسيل", cost: 5.0 },
+  { name: "Underwear", name_ar: "ملابس داخلية", task: "Washing", task_ar: "غسيل", cost: 1.7 },
+  { name: "Undershirt / Vest", name_ar: "فانيلة / صديري", task: "Washing", task_ar: "غسيل", cost: 1.7 },
+  { name: "Scarf", name_ar: "وشاح", task: "Ironing", task_ar: "كي", cost: 1.7 },
+  { name: "Scarf", name_ar: "وشاح", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 2.7 },
+  { name: "Overall", name_ar: "لباس كامل", task: "Ironing", task_ar: "كي", cost: 3.0 },
+  { name: "Overall", name_ar: "لباس كامل", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 7.0 },
+  { name: "Overall", name_ar: "لباس كامل", task: "Washing", task_ar: "غسيل", cost: 5.0 },
+  { name: "Sweater / Pullover", name_ar: "كنزة / بلوفر", task: "Ironing", task_ar: "كي", cost: 2.7 },
+  { name: "Sweater / Pullover", name_ar: "كنزة / بلوفر", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 4.7 },
+  { name: "Suits 3 pcs", name_ar: "بدلة ثلاث قطع", task: "Ironing", task_ar: "كي", cost: 8.0 },
+  { name: "Suits 3 pcs", name_ar: "بدلة ثلاث قطع", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 12.0 },
+  { name: "Suits 2 pcs", name_ar: "بدلة قطعتين", task: "Ironing", task_ar: "كي", cost: 6.7 },
+  { name: "Suits 2 pcs", name_ar: "بدلة قطعتين", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 10.0 },
+  { name: "Overcoat", name_ar: "معطف", task: "Ironing", task_ar: "كي", cost: 5.5 },
+  { name: "Overcoat", name_ar: "معطف", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 8.0 },
+  { name: "Ties", name_ar: "ربطات عنق", task: "Ironing", task_ar: "كي", cost: 1.5 },
+  { name: "Ties", name_ar: "ربطات عنق", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 2.6 },
+  { name: "Jeans", name_ar: "جينز", task: "Ironing", task_ar: "كي", cost: 2.6 },
+  { name: "Jeans", name_ar: "جينز", task: "Washing", task_ar: "غسيل", cost: 4.5 },
+  { name: "Ghutra &amp; Kuffiyeh", name_ar: "غترة وكوفية", task: "Ironing", task_ar: "كي", cost: 1.5 },
+  { name: "Ghutra &amp; Kuffiyeh", name_ar: "غترة وكوفية", task: "Washing", task_ar: "غسيل", cost: 3.5 },
+  { name: "Dishdasha", name_ar: "دشداشة", task: "Ironing", task_ar: "كي", cost: 5.0 },
+  { name: "Dishdasha", name_ar: "دشداشة", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 7.0 },
+  { name: "Dishdasha", name_ar: "دشداشة", task: "Washing", task_ar: "غسيل", cost: 7.0 },
+  { name: "Jacket", name_ar: "سترة", task: "Ironing", task_ar: "كي", cost: 4.0 },
+  { name: "Jacket", name_ar: "سترة", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 5.0 },
+  { name: "Jacket", name_ar: "سترة", task: "Washing", task_ar: "غسيل", cost: 5.0 },
+  { name: "Trousers", name_ar: "بنطال", task: "Ironing", task_ar: "كي", cost: 3.5 },
+  { name: "Trousers", name_ar: "بنطال", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 5.0 },
+  { name: "Trousers", name_ar: "بنطال", task: "Washing", task_ar: "غسيل", cost: 4.0 },
+  { name: "T-Shirt", name_ar: "تي شيرت", task: "Ironing", task_ar: "كي", cost: 2.3 },
+  { name: "T-Shirt", name_ar: "تي شيرت", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 3.5 },
+  { name: "T-Shirt", name_ar: "تي شيرت", task: "Washing", task_ar: "غسيل", cost: 3.5 },
+  { name: "Shirt", name_ar: "قميص", task: "Ironing", task_ar: "كي", cost: 2.6 },
+  { name: "Shirt", name_ar: "قميص", task: "Dry-Cleaning", task_ar: "تنظيف جاف", cost: 4.0 },
+  { name: "Shirt", name_ar: "قميص", task: "Washing", task_ar: "غسيل", cost: 3.3 }
+];
+
+  const translations = {
+    en: {
+      title: "Laundry Service",
+      guestLabel: "Guest Name",
+      roomLabel: "Room Number",
+      itemHeader: "Item",
+      taskHeader: "Task",
+      costHeader: "Cost ($)",
+      selectHeader: "Select",
+      totalLabel: "Total:"
+    },
+    ar: {
+      title: "خدمة الغسيل",
+      guestLabel: "اسم النزيل",
+      roomLabel: "رقم الغرفة",
+      itemHeader: "الصنف",
+      taskHeader: "الخدمة",
+      costHeader: "السعر ($)",
+      selectHeader: "اختيار",
+      totalLabel: "المجموع:"
+    }
+  };
+
+  let currentLang = 'en';
+
+  function renderTable() {
+    const tbody = document.getElementById('itemRows');
+    tbody.innerHTML = '';
+    items.forEach((item, index) => {
+      const row = `<tr>
+        <td>${currentLang === 'ar' ? item.name_ar : item.name}</td>
+        <td>${currentLang === 'ar' ? item.task_ar : item.task}</td>
+        <td>${item.cost.toFixed(2)}</td>
+        <td><input type="checkbox" data-index="${index}" onchange="updateTotal()"></td>
+      </tr>`;
+      tbody.insertAdjacentHTML('beforeend', row);
+    });
+  }
+
+  function updateTotal() {
+    let total = 0;
+    document.querySelectorAll('#itemRows input[type="checkbox"]').forEach(cb => {
+      if (cb.checked) total += items[cb.dataset.index].cost;
+    });
+    document.getElementById('totalAmount').textContent = total.toFixed(2);
+  }
+
+  function toggleLanguage() {
+    currentLang = currentLang === 'en' ? 'ar' : 'en';
+    const t = translations[currentLang];
+    document.getElementById('title').textContent = t.title;
+    document.getElementById('guestLabel').textContent = t.guestLabel;
+    document.getElementById('roomLabel').textContent = t.roomLabel;
+    document.getElementById('itemHeader').textContent = t.itemHeader;
+    document.getElementById('taskHeader').textContent = t.taskHeader;
+    document.getElementById('costHeader').textContent = t.costHeader;
+    document.getElementById('selectHeader').textContent = t.selectHeader;
+    document.getElementById('totalLabel').textContent = t.totalLabel;
+  }
+
+  function saveOrder() {
+    const guest = document.getElementById('guestName').value.trim();
+    const room = document.getElementById('roomNumber').value.trim();
+    if (!guest || !room) return alert('Please fill out all fields.');
+
+    const selectedItems = items.filter((_, index) =>
+      document.querySelector(`#itemRows input[data-index="${index}"]`).checked
+    );
+    if (selectedItems.length === 0) return alert('Please select at least one item.');
+
+    const total = document.getElementById('totalAmount').textContent;
+    const order = {
+      orderNumber: `LAUNDRY${room}`,
+      guest,
+      room,
+      items: selectedItems,
+      total
+    };
+    localStorage.setItem(`laundry-${Date.now()}`, JSON.stringify(order));
+    alert(currentLang === 'ar' ? 'تم حفظ الطلب!' : 'Order saved successfully!');
+  }
+
+  renderTable();
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+async function generatePDFInvoice() {
+  const guest = document.getElementById('guestName').value.trim();
+  const room = document.getElementById('roomNumber').value.trim();
+  if (!guest || !room) {
+    alert(currentLang === 'ar' ? 'يرجى إدخال اسم النزيل ورقم الغرفة.' : 'Please enter guest name and room number.');
+    return;
+  }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  let y = 40;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.text("Bluemoon Hotel", 40, y);
+  y += 30;
+
+  doc.setFontSize(14);
+  doc.text("Laundry Invoice", 40, y);
+  y += 10;
+
+  doc.setDrawColor(180);
+  doc.setLineWidth(0.5);
+  doc.line(40, y, pageWidth - 40, y);
+  y += 20;
+
+  const today = new Date().toLocaleDateString();
+  const leftInfo = [
+    `Order #: LAUNDRY${room}`,
+    `Issue Date: ${today}`,
+    `Guest Name: ${guest}`,
+    `Room Number: ${room}`
+  ];
+  const rightInfo = [
+    "INVOICED FROM:",
+    "Bluemoon Hotel",
+    "Mobile: 07714449669",
+    "Email: fo@bluemoonhotel-iq.com",
+    "Website: bluemoonhotel.42web.io"
+  ];
+
+  doc.setFontSize(11);
+  leftInfo.forEach((line, i) => doc.text(line, 40, y + i * 16));
+  rightInfo.forEach((line, i) => doc.text(line, pageWidth - 250, y + i * 16));
+
+  y += Math.max(leftInfo.length, rightInfo.length) * 16 + 20;
+
+  // Table Headers
+  doc.setFont('helvetica', 'bold');
+  doc.setFillColor(230, 230, 230);
+  doc.rect(40, y, pageWidth - 80, 24, 'F');
+  doc.text("Item", 50, y + 16);
+  doc.text("Service", pageWidth / 2 - 30, y + 16);
+  doc.text("Price", pageWidth - 100, y + 16, { align: 'right' });
+  y += 30;
+
+  // Items
+  let total = 0;
+  doc.setFont('helvetica', 'normal');
+  document.querySelectorAll('#itemRows input[type="checkbox"]').forEach(cb => {
+    if (cb.checked) {
+      const item = items[cb.dataset.index];
+      const name = currentLang === 'ar' ? item.name_ar : item.name;
+      const task = currentLang === 'ar' ? item.task_ar : item.task;
+      doc.text(name, 50, y);
+      doc.text(task, pageWidth / 2 - 30, y);
+      doc.text(`$${item.cost.toFixed(2)}`, pageWidth - 100, y, { align: 'right' });
+      total += item.cost;
+      y += 20;
+    }
+  });
+
+  y += 10;
+  doc.setDrawColor(200);
+  doc.line(40, y, pageWidth - 40, y);
+  y += 25;
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text("Total", 50, y);
+  doc.text(`$${total.toFixed(2)}`, pageWidth - 100, y, { align: 'right' });
+
+  y += 40;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text("Terms & Conditions", 40, y);
+  doc.setFontSize(9);
+  doc.text("1. Our site may use cookies to enhance your experience.", 40, y + 14);
+  doc.text("2. Some parts of the site may not function properly without cookies.", 40, y + 28);
+
+  y += 60;
+  doc.text("Guest Signature: ____________________", 40, y);
+  doc.text("Authorized Signature: ________________", pageWidth / 2 + 40, y);
+
+  y += 30;
+  doc.setTextColor(0, 180, 0);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text("PAID", pageWidth - 80, y, { align: 'right' });
+
+  doc.save(`Laundry_Invoice_${room}.pdf`);
+}
+</script>
+
+</body>
+</html>
